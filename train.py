@@ -3,10 +3,32 @@ import torch.nn as nn
 from torch.optim import AdamW
 from tokenizer import Tokenizer
 from transformer import Transformer
-from data import training_data
+import os
+
+def load_all_data():
+    from data import training_data
+    all_data = list(training_data)
+
+    if os.path.exists("real_data.txt"):
+        with open("real_data.txt", "r") as f:
+            lines = f.readlines()
+        real_sentences = [
+            l.strip().strip('",').strip()
+            for l in lines
+            if l.strip() and len(l.strip()) > 5
+        ]
+        all_data.extend(real_sentences)
+        print(f"Personal data:  {len(training_data)} sentences")
+        print(f"Real data:      {len(real_sentences)} sentences")
+    
+    print(f"Total data:     {len(all_data)} sentences")
+    return all_data
 
 def train():
-    # Setup
+    # Load all data
+    training_data = load_all_data()
+
+    # Setup tokenizer
     tok = Tokenizer()
     tok.build_vocab(training_data)
     tok.save()
@@ -14,12 +36,12 @@ def train():
     vocab_size = len(tok.word2idx)
     print(f"Vocab size: {vocab_size}")
 
-    # Build model
+    # Build model (bigger for more data!)
     model = Transformer(
         vocab_size=vocab_size,
-        embed_dim=128,
-        num_heads=4,
-        num_layers=4,
+        embed_dim=256,
+        num_heads=8,
+        num_layers=6,
         max_seq_len=256
     )
 
@@ -29,7 +51,7 @@ def train():
         ignore_index=tok.special_tokens['<PAD>']
     )
 
-    # Prepare training data
+    # Prepare tokens
     all_tokens = []
     for text in training_data:
         tokens = tok.encode(text)
@@ -40,31 +62,25 @@ def train():
     print("-" * 40)
 
     # Training loop
-    epochs = 1000
+    epochs = 500
     model.train()
+    best_loss = float('inf')
 
     for epoch in range(epochs):
         total_loss = 0
         count = 0
 
         for tokens in all_tokens:
-            # Convert to tensor
             t = torch.tensor(tokens, dtype=torch.long).unsqueeze(0)
-
-            # Input = all except last, Target = all except first
             inputs = t[:, :-1]
             targets = t[:, 1:]
 
-            # Forward pass
             logits = model(inputs)
-
-            # Calculate loss
             loss = criterion(
                 logits.reshape(-1, vocab_size),
                 targets.reshape(-1)
             )
 
-            # Real backpropagation!
             optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -75,31 +91,32 @@ def train():
 
         avg_loss = total_loss / count
 
+        # Save best model automatically!
+        if avg_loss < best_loss:
+            best_loss = avg_loss
+            torch.save({
+                'model_state': model.state_dict(),
+                'vocab_size': vocab_size,
+                'embed_dim': 256,
+                'num_heads': 8,
+                'num_layers': 6,
+            }, 'model.pt')  # always overwrites ✅
+
         if epoch % 50 == 0:
-            print(f"Epoch {epoch:4d} | Loss: {avg_loss:.4f}")
+            print(f"Epoch {epoch:4d} | Loss: {avg_loss:.4f} | Best: {best_loss:.4f}")
 
     print("-" * 40)
-    print(f"Training done! Final loss: {avg_loss:.4f}")
-
-    # Save model
-    torch.save({
-        'model_state': model.state_dict(),
-        'vocab_size': vocab_size,
-        'embed_dim': 128,
-        'num_heads': 4,
-        'num_layers': 4,
-    }, 'model.pt')
-    print("Model saved to model.pt")
+    print(f"Training done! Best loss: {best_loss:.4f}")
+    print("Model saved to model.pt ✅")
 
     # Test generation
     print("\n--- Testing Generation ---")
     model.eval()
 
-    def generate(prompt, max_tokens=15, temperature=0.7):
+    def generate(prompt, max_tokens=20, temperature=0.7):
         tokens = tok.encode(prompt)
         if tokens[-1] == tok.special_tokens['<EOS>']:
             tokens = tokens[:-1]
-
         generated = list(tokens)
 
         with torch.no_grad():
@@ -116,11 +133,11 @@ def train():
         return tok.decode(generated)
 
     prompts = [
-        "python is",
-        "neural networks",
-        "artificial intelligence",
-        "machine learning",
-        "programming is",
+        "hello",
+        "who created you",
+        "what is python",
+        "who is jonje",
+        "hii bro",
     ]
 
     for prompt in prompts:
