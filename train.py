@@ -39,10 +39,10 @@ def train():
     # Build model (bigger for more data!)
     model = Transformer(
         vocab_size=vocab_size,
-        embed_dim=256,
+        embed_dim=512,
         num_heads=8,
-        num_layers=6,
-        max_seq_len=256
+        num_layers=12,
+        max_seq_len=512
     )
 
     # Optimizer
@@ -62,7 +62,7 @@ def train():
     print("-" * 40)
 
     # Training loop
-    epochs = 500
+    epochs = 1000
     model.train()
     best_loss = float('inf')
 
@@ -97,9 +97,9 @@ def train():
             torch.save({
                 'model_state': model.state_dict(),
                 'vocab_size': vocab_size,
-                'embed_dim': 256,
+                'embed_dim': 512,
                 'num_heads': 8,
-                'num_layers': 6,
+                'num_layers': 12,
             }, 'model.pt')  # always overwrites ✅
 
         if epoch % 50 == 0:
