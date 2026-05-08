@@ -44,12 +44,12 @@ if __name__ == "__main__":
     model, tok = load_model()
 
     print("=" * 40)
-    print("  YOUR PERSONAL LLM IS READY! 🤖")
+    print("  TESTING PERSONAL LLM ( Ai )")
     print("  Type 'quit' to exit")
     print("=" * 40)
 
     while True:
-        user_input = input("\nYou: ").strip()
+        user_input = input("\n>> ").strip()
 
         if not user_input:
             continue
@@ -59,4 +59,4 @@ if __name__ == "__main__":
             break
 
         response = generate(model, tok, user_input)
-        print(f"LLM: {response}")
+        print(f"Ai Model: {response}")

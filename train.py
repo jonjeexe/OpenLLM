@@ -39,11 +39,16 @@ def train():
     # Build model (bigger for more data!)
     model = Transformer(
         vocab_size=vocab_size,
-        embed_dim=512,
+        embed_dim=256,
         num_heads=8,
-        num_layers=12,
-        max_seq_len=512
+        num_layers=6,
+        max_seq_len=256
     )
+
+    if os.path.exists('model.pt'):
+    checkpoint = torch.load('model.pt')
+    model.load_state_dict(checkpoint['model_state'], strict=False)
+    print("✅ Loaded existing model, old knowledge preserved")
 
     # Optimizer
     optimizer = AdamW(model.parameters(), lr=3e-4)
@@ -62,7 +67,7 @@ def train():
     print("-" * 40)
 
     # Training loop
-    epochs = 1000
+    epochs = 500
     model.train()
     best_loss = float('inf')
 
@@ -97,9 +102,9 @@ def train():
             torch.save({
                 'model_state': model.state_dict(),
                 'vocab_size': vocab_size,
-                'embed_dim': 512,
+                'embed_dim': 256,
                 'num_heads': 8,
-                'num_layers': 12,
+                'num_layers': 6,
             }, 'model.pt')  # always overwrites ✅
 
         if epoch % 50 == 0:
