@@ -78,16 +78,16 @@ def train():
     )
 
     if os.path.exists('model.pt'):
-    try:
-        checkpoint = torch.load('model.pt')
-        saved_vocab = checkpoint.get('vocab_size', 0)
-        if saved_vocab == vocab_size:
-            model.load_state_dict(checkpoint['model_state'], strict=False)
-            print("✅ Loaded existing model, old knowledge preserved")
-        else:
-            print(f"⚠️ Vocab mismatch ({saved_vocab} vs {vocab_size}), starting fresh")
-    except Exception as e:
-        print(f"⚠️ Could not load model: {e}, starting fresh")
+        try:
+            checkpoint = torch.load('model.pt')
+            saved_vocab = checkpoint.get('vocab_size', 0)
+            if saved_vocab == vocab_size:
+                model.load_state_dict(checkpoint['model_state'], strict=False)
+                print("✅ Loaded existing model, old knowledge preserved")
+            else:
+                print(f"⚠️ Vocab mismatch ({saved_vocab} vs {vocab_size}), starting fresh")
+        except Exception as e:
+            print(f"⚠️ Could not load model: {e}, starting fresh")
 
     optimizer = AdamW(model.parameters(), lr=3e-4)
     criterion = nn.CrossEntropyLoss(
@@ -156,7 +156,6 @@ def train():
     model.eval()
 
     def generate(prompt, max_tokens=30, temperature=0.7):
-        # Append <SEP> to prompt so model knows to generate a response
         full_prompt = prompt + " <SEP>"
         tokens = tok.encode(full_prompt)
         if tokens[-1] == tok.special_tokens['<EOS>']:
@@ -174,7 +173,6 @@ def train():
                     break
                 generated.append(next_token)
 
-        # Only return tokens AFTER <SEP>
         sep_id = tok.special_tokens.get('<SEP>', None)
         if sep_id and sep_id in generated:
             sep_pos = generated.index(sep_id)
