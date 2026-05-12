@@ -78,9 +78,16 @@ def train():
     )
 
     if os.path.exists('model.pt'):
+    try:
         checkpoint = torch.load('model.pt')
-        model.load_state_dict(checkpoint['model_state'], strict=False)
-        print("✅ Loaded existing model, old knowledge preserved")
+        saved_vocab = checkpoint.get('vocab_size', 0)
+        if saved_vocab == vocab_size:
+            model.load_state_dict(checkpoint['model_state'], strict=False)
+            print("✅ Loaded existing model, old knowledge preserved")
+        else:
+            print(f"⚠️ Vocab mismatch ({saved_vocab} vs {vocab_size}), starting fresh")
+    except Exception as e:
+        print(f"⚠️ Could not load model: {e}, starting fresh")
 
     optimizer = AdamW(model.parameters(), lr=3e-4)
     criterion = nn.CrossEntropyLoss(
