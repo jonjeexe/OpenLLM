@@ -1,0 +1,45 @@
+name: Train Yomi AI
+
+on:
+  workflow_dispatch:        # Manual trigger from GitHub UI
+  push:
+    paths:
+      - 'real_data.jsonl'   # Auto trigger when you update training data
+      - 'data.py'
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350    # ~5h 50min (safe before 6h GitHub limit)
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.JONJEGITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-torch-cpu
+
+      - name: Install dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Train Yomi
+        run: python train.py
+
+      - name: Commit & push updated model
+        run: |
+          git config user.name "jonjeexe"
+          git config user.email "jonje.exe@gmail.com"
+          git add model.pt tokenizer.json
+          git diff --staged --quiet || git commit -m "🤖 Yomi trained $(date +'%Y-%m-%d %H:%M UTC')"
+          git push
