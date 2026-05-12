@@ -7,6 +7,12 @@ def load_model():
     tok = Tokenizer()
     tok.load('tokenizer.json')
 
+    # Register <SEP> token if not present
+    if '<SEP>' not in tok.special_tokens:
+        tok.special_tokens['<SEP>'] = 4
+        tok.word2idx['<SEP>'] = 4
+        tok.idx2word[4] = '<SEP>'
+
     checkpoint = torch.load('model.pt', weights_only=True)
 
     model = Transformer(
@@ -19,8 +25,10 @@ def load_model():
     model.eval()
     return model, tok
 
-def generate(model, tok, prompt, max_tokens=20, temperature=0.7):
-    tokens = tok.encode(prompt)
+def generate(model, tok, prompt, max_tokens=30, temperature=0.7):
+    # Add <SEP> so model knows to generate response
+    full_prompt = prompt + " <SEP>"
+    tokens = tok.encode(full_prompt)
     if tokens[-1] == tok.special_tokens['<EOS>']:
         tokens = tokens[:-1]
 
@@ -37,19 +45,25 @@ def generate(model, tok, prompt, max_tokens=20, temperature=0.7):
                 break
             generated.append(next_token)
 
+    # Only decode tokens AFTER <SEP>
+    sep_id = tok.special_tokens.get('<SEP>', None)
+    if sep_id and sep_id in generated:
+        sep_pos = generated.index(sep_id)
+        generated = generated[sep_pos + 1:]
+
     return tok.decode(generated)
 
 if __name__ == "__main__":
-    print("Loading your LLM...")
+    print("Loading Yomi...")
     model, tok = load_model()
 
     print("=" * 40)
-    print("  TESTING PERSONAL LLM ( Ai )")
+    print("  YOMI - Personal AI by jonje")
     print("  Type 'quit' to exit")
     print("=" * 40)
 
     while True:
-        user_input = input("\n>> ").strip()
+        user_input = input("\nYou: ").strip()
 
         if not user_input:
             continue
@@ -59,4 +73,4 @@ if __name__ == "__main__":
             break
 
         response = generate(model, tok, user_input)
-        print(f"Ai Model: {response}")
+        print(f"Yomi: {response}")
